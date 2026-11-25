@@ -33,6 +33,7 @@ curl --fail -X POST http://127.0.0.1:19339/api/auth/login \
 | 获取领域字段和配置 | `GET /api/method` 返回数据行和选项的 JSON Schema |
 | 导入及核对 | `POST /api/datasets` 接受 `{"name":"…","rows":[…]}`，或用 `Content-Type: text/csv` 和 `?name=…` 传原始 CSV。`GET /api/datasets` 列版本，`GET /api/datasets/{id}/rows` 分页读原始行 |
 | 运算 | `POST /api/datasets/{id}/runs` 提交 `{"options":{}}` 使用默认值，`GET /api/runs/{run_id}` 轮询结果 |
+| 回执台账 | `POST /api/ledger/batches` 提交 `{"posted_at":"…(可选)","entries":[{"edition_key":"…","kind":"receipt|withdrawal","received_at":"…","source_ref":"…"}]}`；同入账时刻内容冲突整批拒绝（409）并留档。`GET /api/ledger/replay?as_of=…` 按入账时间重建当时知识库，`GET /api/ledger/editions/{edition_key}/history` 查单场轨迹 |
 | 复核 | `POST /api/runs/{run_id}/review` 提交 `{"decision":"approved","note":"已核对来源与口径"}`，决策也可为 `rejected` |
 | 报告和分发 | `GET /api/runs/{run_id}/report` 获取带版本校验值的报告，`GET /api/runs/{run_id}/report/csv?table=…` 导出业务表。审批后 `POST /api/runs/{run_id}/deliveries` 提交 `recipient` 与带偏移的 `due_at`，由 worker 到点写入 `GET /api/inbox`；`GET /api/audit` 查询审计 |
 
@@ -46,3 +47,14 @@ docker compose down
 验收脚本与实测证据见 [本项目验收记录](../../test-artifacts/gb-0090/TESTING.md)。
 
 该项目按场次发布时使用 `POST /api/runs/{run_id}/editions`，请求为 `{"edition_key":"NY-HALL/2026-11-01/matinee"}`。回放时间通过 `options.as_of` 指定。实时投递同时检查当前时钟和补发截止。历史 seed 用于复算夏令时及缺报场景。实时录入和补发验证见业务剧本。
+
+## 领域规则测试
+
+双时态台账的核心规则不依赖 Web/数据库栈，可直接用标准库运行：
+
+```sh
+cd backend
+PYTHONPATH=. python3 -m unittest discover -s tests
+```
+
+覆盖：倒填收到时间与按入账时间重放、撤回按缺报、同入账时刻冲突整批不入账、更正拦截排队旧晨报并补发、投递先于更正时保留证据且重跑幂等。

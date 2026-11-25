@@ -1,5 +1,6 @@
 from domain.fixtures import seed
 from domain.intake import EditionInput, EditionOptions, record_key, validate_rows
+from domain.ledger import EditionState
 from domain.planning import plan_edition
 from domain.rollup import build_report
 
@@ -11,7 +12,10 @@ ROW_MODEL = EditionInput
 OPTIONS_MODEL = EditionOptions
 
 
-def analyze(rows: list[EditionInput], options: EditionOptions) -> dict:
+def analyze(rows: list[EditionInput], options: EditionOptions,
+            states: dict[str, EditionState] | None = None) -> dict:
     validate_rows(rows)
-    plans = [plan_edition(row, options) for row in sorted(rows, key=record_key)]
+    states = states or {}
+    plans = [plan_edition(row, options, states.get(record_key(row)))
+             for row in sorted(rows, key=record_key)]
     return build_report(plans, options)

@@ -41,7 +41,9 @@ def deliver_next() -> bool:
     with Session.begin() as db:
         now = now_utc()
         query = (select(Delivery).where(Delivery.delivered_at.is_(None),
-                                         Delivery.expired_at.is_(None), Delivery.due_at <= now)
+                                         Delivery.expired_at.is_(None),
+                                         Delivery.superseded_at.is_(None),
+                                         Delivery.due_at <= now)
                  .order_by(Delivery.due_at, Delivery.id).limit(1).with_for_update(skip_locked=True))
         delivery = db.scalar(query)
         if delivery is None:

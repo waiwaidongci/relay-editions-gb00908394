@@ -10,6 +10,7 @@ from app.auth.api import router as auth_api
 from app.data.api import router as data_api
 from app.delivery.api import router as delivery_api
 from app.errors import Problem, problem_handler, validation_handler
+from app.ledger.api import router as ledger_api
 from app.ops.admin_api import router as admin_api
 from app.ops.health import router as health_api
 from app.ops.middleware import AccessTiming, RequestContext
@@ -36,6 +37,6 @@ app.add_exception_handler(Problem, problem_handler)
 app.add_exception_handler(RequestValidationError, validation_handler)
 app.add_middleware(AccessTiming)
 app.add_middleware(RequestContext)
-for router in (auth_api, data_api, analysis_api, delivery_api, admin_api, relay_api):
+for router in (auth_api, data_api, analysis_api, delivery_api, admin_api, relay_api, ledger_api):
     app.include_router(router, prefix='/api')
 app.include_router(health_api)

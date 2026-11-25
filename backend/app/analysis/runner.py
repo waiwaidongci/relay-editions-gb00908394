@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import timezone
 
 from sqlalchemy import select
 
@@ -8,6 +9,7 @@ from app.analysis.models import AnalysisRun
 from app.clock import now_utc
 from app.data.repository import observation_query
 from app.database import Session
+from app.ledger.repository import replay_states
 from app.ops.audit import audit
 from domain.spec import OPTIONS_MODEL, ROW_MODEL, analyze
 
@@ -34,7 +36,11 @@ def run_next() -> bool:
         try:
             rows = [ROW_MODEL.model_validate(item) for item in db.scalars(observation_query(run.dataset_id))]
             options = OPTIONS_MODEL.model_validate(run.options)
-            run.result = validate_result(analyze(rows, options))
+            # Replay the append-only receipt ledger at the run's as_of so the
+            # morning report is recomputed from what was knowable then. The
+            # ledger stores naive UTC, so compare on an aware UTC instant.
+            states = replay_states(db, options.as_of.astimezone(timezone.utc))
+            run.result = validate_result(analyze(rows, options, states))
             run.status = RunStatus.completed
         except ValueError as exc:
             run.status = RunStatus.failed

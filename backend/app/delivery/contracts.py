@@ -25,6 +25,8 @@ class DeliveryRequest(BaseModel):
 
 def describe(delivery, include_report=False):
     state = 'scheduled'
+    if delivery.superseded_at:
+        state = 'superseded'
     if delivery.delivered_at:
         state = 'delivered'
     if delivery.expired_at:
@@ -33,7 +35,8 @@ def describe(delivery, include_report=False):
             'scheduled_by': delivery.scheduled_by, 'due_at': utc_iso(delivery.due_at),
             'created_at': utc_iso(delivery.created_at),
             'status': state, 'channel': delivery.channel,
-            'delivered_at': utc_iso(delivery.delivered_at) if delivery.delivered_at else None}
+            'delivered_at': utc_iso(delivery.delivered_at) if delivery.delivered_at else None,
+            'superseded_at': utc_iso(delivery.superseded_at) if delivery.superseded_at else None}
     if include_report:
         data['report'] = delivery.report
     return data

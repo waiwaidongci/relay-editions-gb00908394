@@ -23,5 +23,8 @@ class Delivery(Base):
     delivered_at: Mapped[datetime | None] = mapped_column(timestamp)
     expires_at: Mapped[datetime | None] = mapped_column(timestamp)
     expired_at: Mapped[datetime | None] = mapped_column(timestamp)
+    # A correction booked before delivery intercepts the queued report; the
+    # row is retained as evidence instead of being deleted.
+    superseded_at: Mapped[datetime | None] = mapped_column(timestamp)
     created_at: Mapped[datetime] = mapped_column(timestamp, default=now_utc)
     report: Mapped[dict | None] = mapped_column(JSON)
